@@ -15,6 +15,8 @@ const InventarioApp = () => {
   const [tipoMovimiento, setTipoMovimiento] = useState('ingreso');
   const [movimientos, setMovimientos] = useState([]);
   const [productoFiltrado, setProductoFiltrado] = useState(null);
+  const [autenticado, setAutenticado] = useState(false);
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     const inventarioInicial = {};
@@ -58,6 +60,37 @@ const InventarioApp = () => {
     ? movimientos.filter(m => m.producto === productoFiltrado)
     : movimientos;
 
+  const manejarAutenticacion = () => {
+    if (password === 'akor2024') {
+      setAutenticado(true);
+    } else {
+      alert('Contraseña incorrecta');
+    }
+  };
+
+  if (!autenticado) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-pink-100 to-blue-100">
+        <div className="p-6 bg-white rounded-lg shadow-lg">
+          <h2 className="text-2xl font-bold text-center text-purple-600 mb-4">Acceso a Inventario</h2>
+          <input 
+            type="password" 
+            className="p-2 mb-4 w-full rounded-lg bg-gray-100 border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
+            placeholder="Ingrese la contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button 
+            onClick={manejarAutenticacion}
+            className="w-full p-2 rounded-lg bg-purple-500 text-white shadow-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-400 transition duration-300"
+          >
+            Ingresar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 min-h-screen bg-gradient-to-br from-pink-100 to-blue-100">
       <motion.h1 
@@ -66,7 +99,7 @@ const InventarioApp = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        Inventario Akor
+        Inventario App
       </motion.h1>
       
       <motion.div 
@@ -189,6 +222,10 @@ const InventarioApp = () => {
           </div>
         </motion.div>
       </div>
+
+      <footer className="mt-8 text-center text-purple-600">
+        <p>&copy; 2024 AKOR Design. Todos los derechos reservados.</p>
+      </footer>
     </div>
   );
 };
