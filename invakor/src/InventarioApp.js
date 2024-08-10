@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { collection, addDoc, getDocs, updateDoc, doc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
 const productos = [
-  '90/40', '84/08', '84/14', 'Tornillos 8x2', 'Tornillos 8x1x1/4', 
+  '9040', '8408', '8414', 'Tornillos 8x2', 'Tornillos 8x1x14', 
   'Cincha', 'Cocodrilos', 'Streech', 'ZigZag', 'Vinculos', 
   'Chapas ZigZag', 'Cierre Natural', 'Cierre Negro', 'Deslizadores', 
   'Cola', 'Cemento de Contacto'
@@ -19,20 +21,46 @@ const InventarioApp = () => {
   const [password, setPassword] = useState('');
 
   useEffect(() => {
-    const inventarioInicial = {};
-    productos.forEach(producto => {
-      inventarioInicial[producto] = 0;
-    });
-    setInventario(inventarioInicial);
-  }, []);
+    const fetchData = async () => {
+      if (autenticado) {
+        await fetchInventario();
+        await fetchMovimientos();
+      }
+    };
+    fetchData();
+  }, [autenticado]);
 
-  const manejarMovimiento = () => {
+  const fetchInventario = async () => {
+    const inventarioRef = collection(db, 'inventario');
+    const snapshot = await getDocs(inventarioRef);
+    const inventarioData = {};
+    snapshot.forEach(doc => {
+      inventarioData[doc.id] = doc.data().cantidad;
+    });
+    setInventario(inventarioData);
+  };
+
+  const fetchMovimientos = async () => {
+    const movimientosRef = collection(db, 'movimientos');
+    const snapshot = await getDocs(movimientosRef);
+    const movimientosData = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setMovimientos(movimientosData);
+  };
+
+  const manejarMovimiento = async () => {
     if (!productoSeleccionado || !cantidad) return;
 
     const cantidadNumerica = parseInt(cantidad);
     const nuevaCantidad = tipoMovimiento === 'ingreso' 
-      ? inventario[productoSeleccionado] + cantidadNumerica
-      : inventario[productoSeleccionado] - cantidadNumerica;
+      ? (inventario[productoSeleccionado] || 0) + cantidadNumerica
+      : (inventario[productoSeleccionado] || 0) - cantidadNumerica;
+
+    // Update Firestore
+    const productoRef = doc(db, 'inventario', productoSeleccionado.replace('/', '_'));
+    await setDoc(productoRef, { cantidad: nuevaCantidad }, { merge: true });
 
     setInventario({
       ...inventario,
@@ -45,6 +73,9 @@ const InventarioApp = () => {
       cantidad: cantidadNumerica,
       tipo: tipoMovimiento
     };
+
+    // Add movement to Firestore
+    await addDoc(collection(db, 'movimientos'), nuevoMovimiento);
 
     setMovimientos([nuevoMovimiento, ...movimientos]);
 
@@ -99,7 +130,7 @@ const InventarioApp = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        Inventario App
+        Inventario Akor
       </motion.h1>
       
       <motion.div 
@@ -157,7 +188,7 @@ const InventarioApp = () => {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(inventario).map(([producto, cantidad]) => (
+                {productos.map((producto) => (
                   <motion.tr 
                     key={producto}
                     initial={{ opacity: 0 }}
@@ -167,7 +198,7 @@ const InventarioApp = () => {
                     onClick={() => filtrarMovimientos(producto)}
                   >
                     <td className="p-2">{producto}</td>
-                    <td className="text-right p-2">{cantidad}</td>
+                    <td className="text-right p-2">{inventario[producto] || 0}</td>
                   </motion.tr>
                 ))}
               </tbody>
